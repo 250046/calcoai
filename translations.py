@@ -1,0 +1,67 @@
+TRANSLATIONS = {
+    "uz": {
+        "welcome": "👋 Assalomu alaykum! Men Calco AI - sizning shaxsiy moliyaviy yordamchingizman.\n\n🌐 Tilni tanlang:",
+        "language_selected": "✅ Til o'zbekcha o'rnatildi!",
+        "main_menu": "📊 Asosiy menyu\n\nNima qilmoqchisiz?",
+        "add_expense": "➖ Xarajat qo'shish",
+        "add_income": "➕ Daromad qo'shish",
+        "view_history": "📜 Tarix",
+        "monthly_report": "📊 Oylik hisobot",
+        "manage_loans": "💰 Qarzlar",
+        "settings": "⚙️ Sozlamalar",
+        "send_transaction": "💬 Xarajat yoki daromadingizni yozing.\n\nMasalan:\n• \"15000 oziq-ovqatga sarfladim\"\n• \"500000 ish haqi oldim\"\n• \"Bugun 25000 transportga ketdi\"",
+        "transaction_added": "✅ Qo'shildi!\n\n💰 Summa: {amount} so'm\n📁 Kategoriya: {category}\n📝 Tavsif: {description}\n📅 Sana: {date}",
+        "transaction_error": "❌ Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.",
+        "parse_error": "❌ Tushunmadim. Iltimos, aniqroq yozing.\n\nMasalan: \"10000 non uchun\"",
+        "history_empty": "📭 Hali hech narsa yo'q",
+        "history_title": "📜 Oxirgi 10 ta operatsiya:",
+        "monthly_report_text": "📊 {month}-oy hisoboti\n\n💰 Daromad: {income} so'm\n💸 Xarajat: {expense} so'm\n📈 Balans: {balance} so'm\n\n📝 Jami operatsiyalar: {count}",
+        "loan_menu": "💰 Qarzlar\n\nNima qilmoqchisiz?",
+        "add_loan": "➕ Qarz berish",
+        "view_loans": "📋 Qarzlar ro'yxati",
+        "back": "🔙 Orqaga",
+        "loans_empty": "📭 Qarzlar yo'q",
+        "loans_list": "📋 Qarzlar ro'yxati:\n\n",
+        "loan_item": "👤 {person}\n💰 {amount} so'm\n📅 {date}\n📌 Status: {status}\n\n",
+        "send_loan_info": "💬 Qarz ma'lumotlarini yozing.\n\nMasalan: \"Aliga 100000 berdim\"",
+        "loan_added": "✅ Qarz qo'shildi!\n\n👤 Kim: {person}\n💰 Summa: {amount} so'm\n📅 Sana: {date}",
+        "voice_processing": "🎤 Ovozli xabar qayta ishlanmoqda...",
+        "voice_transcribed": "📝 Matn: {text}",
+    },
+    "ru": {
+        "welcome": "👋 Здравствуйте! Я Calco AI - ваш личный финансовый помощник.\n\n🌐 Выберите язык:",
+        "language_selected": "✅ Язык установлен на русский!",
+        "main_menu": "📊 Главное меню\n\nЧто вы хотите сделать?",
+        "add_expense": "➖ Добавить расход",
+        "add_income": "➕ Добавить доход",
+        "view_history": "📜 История",
+        "monthly_report": "📊 Месячный отчет",
+        "manage_loans": "💰 Долги",
+        "settings": "⚙️ Настройки",
+        "send_transaction": "💬 Напишите ваш расход или доход.\n\nНапример:\n• \"Потратил 15000 на еду\"\n• \"Получил зарплату 500000\"\n• \"Сегодня 25000 на транспорт\"",
+        "transaction_added": "✅ Добавлено!\n\n💰 Сумма: {amount} сум\n📁 Категория: {category}\n📝 Описание: {description}\n📅 Дата: {date}",
+        "transaction_error": "❌ Произошла ошибка. Попробуйте еще раз.",
+        "parse_error": "❌ Не понял. Пожалуйста, напишите точнее.\n\nНапример: \"10000 на хлеб\"",
+        "history_empty": "📭 Пока ничего нет",
+        "history_title": "📜 Последние 10 операций:",
+        "monthly_report_text": "📊 Отчет за {month} месяц\n\n💰 Доход: {income} сум\n💸 Расход: {expense} сум\n📈 Баланс: {balance} сум\n\n📝 Всего операций: {count}",
+        "loan_menu": "💰 Долги\n\nЧто вы хотите сделать?",
+        "add_loan": "➕ Дать в долг",
+        "view_loans": "📋 Список долгов",
+        "back": "🔙 Назад",
+        "loans_empty": "📭 Долгов нет",
+        "loans_list": "📋 Список долгов:\n\n",
+        "loan_item": "👤 {person}\n💰 {amount} сум\n📅 {date}\n📌 Статус: {status}\n\n",
+        "send_loan_info": "💬 Напишите информацию о долге.\n\nНапример: \"Дал Али 100000\"",
+        "loan_added": "✅ Долг добавлен!\n\n👤 Кому: {person}\n💰 Сумма: {amount} сум\n📅 Дата: {date}",
+        "voice_processing": "🎤 Обработка голосового сообщения...",
+        "voice_transcribed": "📝 Текст: {text}",
+    }
+}
+
+def t(key: str, lang: str = "uz", **kwargs) -> str:
+    """Get translation with optional formatting"""
+    text = TRANSLATIONS.get(lang, TRANSLATIONS["uz"]).get(key, key)
+    if kwargs:
+        return text.format(**kwargs)
+    return text
