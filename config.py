@@ -4,12 +4,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-API_ID = int(os.getenv("API_ID"))
+API_ID = int(os.getenv("API_ID") or "0")
 API_HASH = os.getenv("API_HASH")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+# Validate required variables
+if not all([BOT_TOKEN, API_ID, API_HASH, OPENAI_API_KEY, SUPABASE_URL, SUPABASE_KEY]):
+    raise ValueError("Missing required environment variables. Please check your .env or Railway settings.")
 
 # Language settings
 LANGUAGES = {
