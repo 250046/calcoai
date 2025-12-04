@@ -40,6 +40,34 @@ def get_currency_keyboard():
         ]
     ])
 
+def format_transaction_summary(transactions: list, lang: str, user_currency: str) -> str:
+    """Format multiple transactions summary with proper language and currency"""
+    total_amount = sum(t["amount"] for t in transactions)
+    
+    # Header
+    if lang == "uz":
+        summary = f"✅ {len(transactions)} ta tranzaksiya qo'shildi!\n\n"
+    elif lang == "ru":
+        summary = f"✅ Добавлено {len(transactions)} транзакций!\n\n"
+    else:
+        summary = f"✅ Added {len(transactions)} transactions!\n\n"
+    
+    # Transaction list
+    for i, trans in enumerate(transactions, 1):
+        emoji = "💰" if trans["type"] == "income" else "💸"
+        summary += f"{i}. {emoji} {trans['amount']} {user_currency} - {trans['category']}\n"
+        summary += f"   📝 {trans['description']}\n\n"
+    
+    # Total
+    if lang == "uz":
+        summary += f"💵 Jami: {total_amount} {user_currency}"
+    elif lang == "ru":
+        summary += f"💵 Всего: {total_amount} {user_currency}"
+    else:
+        summary += f"💵 Total: {total_amount} {user_currency}"
+    
+    return summary
+
 def get_main_menu_keyboard(lang: str):
     return InlineKeyboardMarkup([
         [
@@ -199,9 +227,12 @@ async def view_history_callback(client: Client, callback: CallbackQuery):
     text = t("history_title", lang) + "\n\n"
     buttons = []
     
+    # Get user currency
+    user_currency = user.get("currency", "UZS")
+    
     for i, trans in enumerate(transactions, 1):
         emoji = "💰" if trans["type"] == "income" else "💸"
-        text += f"{i}. {emoji} {trans['amount']} so'm - {trans['category']}\n"
+        text += f"{i}. {emoji} {trans['amount']} {user_currency} - {trans['category']}\n"
         text += f"   📝 {trans['description']}\n"
         text += f"   📅 {trans['date']}\n\n"
         
@@ -428,15 +459,7 @@ async def handle_text(client: Client, message: Message):
                     )
                 
                 # Send summary message
-                summary = f"✅ {len(transactions)} ta tranzaksiya qo'shildi!\n\n" if lang == "uz" else f"✅ Добавлено {len(transactions)} транзакций!\n\n"
-                
-                for i, trans in enumerate(transactions, 1):
-                    emoji = "💰" if trans["type"] == "income" else "💸"
-                    summary += f"{i}. {emoji} {trans['amount']} so'm - {trans['category']}\n"
-                    summary += f"   📝 {trans['description']}\n\n"
-                
-                summary += f"💵 Jami: {total_amount} so'm" if lang == "uz" else f"💵 Всего: {total_amount} сум"
-                
+                summary = format_transaction_summary(transactions, lang, user_currency)
                 await message.reply(summary, reply_markup=get_main_menu_keyboard(lang))
                 user_states.pop(user_id, None)
             else:
