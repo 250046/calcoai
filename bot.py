@@ -86,31 +86,56 @@ async def language_callback(client: Client, callback: CallbackQuery):
     lang = callback.data.split("_")[1]
     user = db.get_user(callback.from_user.id)
     
-    # Store language temporarily in user_states
-    user_states[callback.from_user.id] = {"selected_language": lang}
-    
-    # Ask for currency selection
-    currency_text = {
-        "uz": "✅ Til o'zbekcha o'rnatildi!\n\n💱 Valyutani tanlang:",
-        "ru": "✅ Язык установлен на русский!\n\n💱 Выберите валюту:",
-        "en": "✅ Language set to English!\n\n💱 Choose currency:"
-    }
-    
-    await callback.message.edit_text(
-        currency_text.get(lang, currency_text["en"]),
-        reply_markup=get_currency_keyboard()
-    )
+    if user:
+        # Existing user changing language from settings
+        db.update_user_language(callback.from_user.id, lang)
+        
+        # Show confirmation and go to main menu
+        lang_set_text = {
+            "uz": "✅ Til o'zbekcha o'rnatildi!",
+            "ru": "✅ Язык установлен на русский!",
+            "en": "✅ Language set to English!"
+        }
+        
+        await callback.answer(lang_set_text.get(lang, lang_set_text["en"]), show_alert=True)
+        
+        await callback.message.edit_text(
+            t("main_menu", lang),
+            reply_markup=get_main_menu_keyboard(lang)
+        )
+    else:
+        # New user - store language and ask for currency
+        user_states[callback.from_user.id] = {"selected_language": lang}
+        
+        currency_text = {
+            "uz": "✅ Til o'zbekcha o'rnatildi!\n\n💱 Valyutani tanlang:",
+            "ru": "✅ Язык установлен на русский!\n\n💱 Выберите валюту:",
+            "en": "✅ Language set to English!\n\n💱 Choose currency:"
+        }
+        
+        await callback.message.edit_text(
+            currency_text.get(lang, currency_text["en"]),
+            reply_markup=get_currency_keyboard()
+        )
 
 @app.on_callback_query(filters.regex("^currency_"))
 async def currency_callback(client: Client, callback: CallbackQuery):
     currency = callback.data.split("_")[1]
     user = db.get_user(callback.from_user.id)
     
-    # Get language from user_states
+    # Get language from user_states or existing user
     state = user_states.get(callback.from_user.id, {})
-    lang = state.get("selected_language", "uz")
+    lang = state.get("selected_language")
+    
+    if not lang and user:
+        # User is changing currency from settings
+        lang = user.get("language", "uz")
+    elif not lang:
+        # Default language for new users
+        lang = "uz"
     
     if not user:
+        # New user - create account
         db.create_user(
             telegram_id=callback.from_user.id,
             name=callback.from_user.first_name or "User",
@@ -118,11 +143,22 @@ async def currency_callback(client: Client, callback: CallbackQuery):
             currency=currency
         )
     else:
-        db.update_user_language(callback.from_user.id, lang)
+        # Existing user - update currency (and language if changing)
+        if state.get("selected_language"):
+            db.update_user_language(callback.from_user.id, lang)
         db.update_user_currency(callback.from_user.id, currency)
     
     # Clear state
     user_states.pop(callback.from_user.id, None)
+    
+    # Show confirmation message
+    currency_set_text = {
+        "uz": f"✅ Valyuta {currency} ga o'rnatildi!",
+        "ru": f"✅ Валюта установлена на {currency}!",
+        "en": f"✅ Currency set to {currency}!"
+    }
+    
+    await callback.answer(currency_set_text.get(lang, currency_set_text["en"]), show_alert=True)
     
     await callback.message.edit_text(
         t("main_menu", lang),
@@ -282,9 +318,54 @@ async def confirm_delete_callback(client: Client, callback: CallbackQuery):
 
 @app.on_callback_query(filters.regex("^settings$"))
 async def settings_callback(client: Client, callback: CallbackQuery):
+    user = db.get_user(callback.from_user.id)
+    lang = user.get("language", "uz") if user else "uz"
+    currency = user.get("currency", "UZS") if user else "UZS"
+    
+    settings_text = {
+        "uz": f"⚙️ Sozlamalar\n\n🌐 Joriy til: {lang.upper()}\n💱 Joriy valyuta: {currency}\n\nNimani o'zgartirmoqchisiz?",
+        "ru": f"⚙️ Настройки\n\n🌐 Текущий язык: {lang.upper()}\n💱 Текущая валюта: {currency}\n\nЧто хотите изменить?",
+        "en": f"⚙️ Settings\n\n🌐 Current language: {lang.upper()}\n💱 Current currency: {currency}\n\nWhat would you like to change?"
+    }
+    
+    button_text = {
+        "uz": ["🌐 Tilni o'zgartirish", "💱 Valyutani o'zgartirish", "🔙 Orqaga"],
+        "ru": ["🌐 Изменить язык", "💱 Изменить валюту", "🔙 Назад"],
+        "en": ["🌐 Change Language", "💱 Change Currency", "🔙 Back"]
+    }
+    
+    buttons = button_text.get(lang, button_text["en"])
+    
     await callback.message.edit_text(
-        "⚙️ Sozlamalar / Настройки / Settings\n\nTilni o'zgartirish / Изменить язык / Change language:",
+        settings_text.get(lang, settings_text["en"]),
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton(buttons[0], callback_data="change_language")],
+            [InlineKeyboardButton(buttons[1], callback_data="change_currency")],
+            [InlineKeyboardButton(buttons[2], callback_data="main_menu")]
+        ])
+    )
+
+@app.on_callback_query(filters.regex("^change_language$"))
+async def change_language_callback(client: Client, callback: CallbackQuery):
+    await callback.message.edit_text(
+        "🌐 Tilni tanlang / Выберите язык / Choose language:",
         reply_markup=get_language_keyboard()
+    )
+
+@app.on_callback_query(filters.regex("^change_currency$"))
+async def change_currency_callback(client: Client, callback: CallbackQuery):
+    user = db.get_user(callback.from_user.id)
+    lang = user.get("language", "uz") if user else "uz"
+    
+    currency_text = {
+        "uz": "💱 Valyutani tanlang:",
+        "ru": "💱 Выберите валюту:",
+        "en": "💱 Choose currency:"
+    }
+    
+    await callback.message.edit_text(
+        currency_text.get(lang, currency_text["en"]),
+        reply_markup=get_currency_keyboard()
     )
 
 @app.on_message(filters.text & filters.private)
