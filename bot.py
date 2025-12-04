@@ -23,6 +23,9 @@ def get_language_keyboard():
         [
             InlineKeyboardButton("🇺🇿 O'zbek", callback_data="lang_uz"),
             InlineKeyboardButton("🇷🇺 Русский", callback_data="lang_ru")
+        ],
+        [
+            InlineKeyboardButton("🇬🇧 English", callback_data="lang_en")
         ]
     ])
 
@@ -212,7 +215,8 @@ async def handle_text(client: Client, message: Message):
     state = user_states.get(user_id, {})
     
     if state.get("action") == "add_loan":
-        result = ai_parser.parse_transaction(message.text, lang)
+        user_currency = user.get("currency", "UZS")
+        result = ai_parser.parse_transaction(message.text, lang, user_currency)
         
         if result and "amount" in result:
             person_name = result.get("description", "Unknown").split()[0] if result.get("description") else "Unknown"
@@ -234,26 +238,57 @@ async def handle_text(client: Client, message: Message):
         else:
             await message.reply(t("parse_error", lang))
     else:
-        result = ai_parser.parse_transaction(message.text, lang)
+        user_currency = user.get("currency", "UZS")
+        result = ai_parser.parse_transaction(message.text, lang, user_currency)
         
         if result:
-            transaction = db.add_transaction(
-                user_id=user["id"],
-                amount=result["amount"],
-                trans_type=result["type"],
-                category=result["category"],
-                description=result["description"]
-            )
-            
-            await message.reply(
-                t("transaction_added", lang,
-                  amount=result["amount"],
-                  category=result["category"],
-                  description=result["description"],
-                  date=transaction["date"]),
-                reply_markup=get_main_menu_keyboard(lang)
-            )
-            user_states.pop(user_id, None)
+            # Check if multiple transactions
+            if result.get("multiple"):
+                # Handle multiple transactions
+                transactions = result["transactions"]
+                total_amount = sum(t["amount"] for t in transactions)
+                
+                # Save all transactions
+                for trans in transactions:
+                    db.add_transaction(
+                        user_id=user["id"],
+                        amount=trans["amount"],
+                        trans_type=trans["type"],
+                        category=trans["category"],
+                        description=trans["description"]
+                    )
+                
+                # Send summary message
+                summary = f"✅ {len(transactions)} ta tranzaksiya qo'shildi!\n\n" if lang == "uz" else f"✅ Добавлено {len(transactions)} транзакций!\n\n"
+                
+                for i, trans in enumerate(transactions, 1):
+                    emoji = "💰" if trans["type"] == "income" else "💸"
+                    summary += f"{i}. {emoji} {trans['amount']} so'm - {trans['category']}\n"
+                    summary += f"   📝 {trans['description']}\n\n"
+                
+                summary += f"💵 Jami: {total_amount} so'm" if lang == "uz" else f"💵 Всего: {total_amount} сум"
+                
+                await message.reply(summary, reply_markup=get_main_menu_keyboard(lang))
+                user_states.pop(user_id, None)
+            else:
+                # Single transaction
+                transaction = db.add_transaction(
+                    user_id=user["id"],
+                    amount=result["amount"],
+                    trans_type=result["type"],
+                    category=result["category"],
+                    description=result["description"]
+                )
+                
+                await message.reply(
+                    t("transaction_added", lang,
+                      amount=result["amount"],
+                      category=result["category"],
+                      description=result["description"],
+                      date=transaction["date"]),
+                    reply_markup=get_main_menu_keyboard(lang)
+                )
+                user_states.pop(user_id, None)
         else:
             await message.reply(t("parse_error", lang))
 
@@ -276,27 +311,58 @@ async def handle_voice(client: Client, message: Message):
         text = ai_parser.transcribe_audio(voice_file, lang)
         os.remove(voice_file)
         
-        await status_msg.edit_text(t("voice_transcribed", lang, text=text))
+        # Delete processing message (don't show transcribed text to user)
+        await status_msg.delete()
         
-        result = ai_parser.parse_transaction(text, lang)
+        user_currency = user.get("currency", "UZS")
+        result = ai_parser.parse_transaction(text, lang, user_currency)
         
         if result:
-            transaction = db.add_transaction(
-                user_id=user["id"],
-                amount=result["amount"],
-                trans_type=result["type"],
-                category=result["category"],
-                description=result["description"]
-            )
-            
-            await message.reply(
-                t("transaction_added", lang,
-                  amount=result["amount"],
-                  category=result["category"],
-                  description=result["description"],
-                  date=transaction["date"]),
-                reply_markup=get_main_menu_keyboard(lang)
-            )
+            # Check if multiple transactions
+            if result.get("multiple"):
+                # Handle multiple transactions
+                transactions = result["transactions"]
+                total_amount = sum(t["amount"] for t in transactions)
+                
+                # Save all transactions
+                for trans in transactions:
+                    db.add_transaction(
+                        user_id=user["id"],
+                        amount=trans["amount"],
+                        trans_type=trans["type"],
+                        category=trans["category"],
+                        description=trans["description"]
+                    )
+                
+                # Send summary message
+                summary = f"✅ {len(transactions)} ta tranzaksiya qo'shildi!\n\n" if lang == "uz" else f"✅ Добавлено {len(transactions)} транзакций!\n\n"
+                
+                for i, trans in enumerate(transactions, 1):
+                    emoji = "💰" if trans["type"] == "income" else "💸"
+                    summary += f"{i}. {emoji} {trans['amount']} so'm - {trans['category']}\n"
+                    summary += f"   📝 {trans['description']}\n\n"
+                
+                summary += f"💵 Jami: {total_amount} so'm" if lang == "uz" else f"💵 Всего: {total_amount} сум"
+                
+                await message.reply(summary, reply_markup=get_main_menu_keyboard(lang))
+            else:
+                # Single transaction
+                transaction = db.add_transaction(
+                    user_id=user["id"],
+                    amount=result["amount"],
+                    trans_type=result["type"],
+                    category=result["category"],
+                    description=result["description"]
+                )
+                
+                await message.reply(
+                    t("transaction_added", lang,
+                      amount=result["amount"],
+                      category=result["category"],
+                      description=result["description"],
+                      date=transaction["date"]),
+                    reply_markup=get_main_menu_keyboard(lang)
+                )
         else:
             await message.reply(t("parse_error", lang))
     

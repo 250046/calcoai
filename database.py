@@ -16,11 +16,12 @@ class Database:
         response = self.client.table("users").select("*").eq("telegram_id", telegram_id).execute()
         return response.data[0] if response.data else None
     
-    def create_user(self, telegram_id: int, name: str, language: str = "uz") -> Dict:
+    def create_user(self, telegram_id: int, name: str, language: str = "uz", currency: str = "UZS") -> Dict:
         data = {
             "telegram_id": telegram_id,
             "name": name,
             "language": language,
+            "currency": currency,
             "created_at": datetime.now().isoformat()
         }
         response = self.client.table("users").insert(data).execute()
@@ -28,6 +29,9 @@ class Database:
     
     def update_user_language(self, telegram_id: int, language: str):
         self.client.table("users").update({"language": language}).eq("telegram_id", telegram_id).execute()
+    
+    def update_user_currency(self, telegram_id: int, currency: str):
+        self.client.table("users").update({"currency": currency}).eq("telegram_id", telegram_id).execute()
     
     # Transaction operations
     def add_transaction(self, user_id: int, amount: float, trans_type: str, 

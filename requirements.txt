@@ -8,3 +8,4 @@ postgrest==0.15.1
 storage3==0.7.7
 realtime==1.0.6
 supafunc==0.3.3
+requests==2.31.0
