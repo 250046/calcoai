@@ -57,6 +57,24 @@ class Database:
             .execute()
         return response.data
     
+    def get_transaction_by_id(self, transaction_id: int) -> Optional[Dict]:
+        response = self.client.table("transactions")\
+            .select("*")\
+            .eq("id", transaction_id)\
+            .execute()
+        return response.data[0] if response.data else None
+    
+    def delete_transaction(self, transaction_id: int, user_id: int) -> bool:
+        try:
+            self.client.table("transactions")\
+                .delete()\
+                .eq("id", transaction_id)\
+                .eq("user_id", user_id)\
+                .execute()
+            return True
+        except:
+            return False
+    
     def get_monthly_summary(self, user_id: int, year: int, month: int) -> Dict:
         start_date = date(year, month, 1)
         if month == 12:

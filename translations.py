@@ -27,6 +27,13 @@ TRANSLATIONS = {
         "loan_added": "✅ Qarz qo'shildi!\n\n👤 Kim: {person}\n💰 Summa: {amount} so'm\n📅 Sana: {date}",
         "voice_processing": "🎤 Ovozli xabar qayta ishlanmoqda...",
         "voice_transcribed": "📝 Matn: {text}",
+        "edit_transaction": "✏️ Tahrirlash",
+        "delete_transaction": "🗑 O'chirish",
+        "confirm_delete": "❓ Rostdan ham o'chirmoqchimisiz?\n\n💰 {amount} so'm - {category}\n📝 {description}",
+        "yes_delete": "✅ Ha, o'chirish",
+        "no_cancel": "❌ Yo'q, bekor qilish",
+        "transaction_deleted": "🗑 Tranzaksiya o'chirildi",
+        "transaction_not_found": "❌ Tranzaksiya topilmadi",
     },
     "en": {
         "welcome": "👋 Hello! I'm Calco AI - your personal finance assistant.\n\n🌐 Choose language:",
@@ -56,6 +63,13 @@ TRANSLATIONS = {
         "loan_added": "✅ Loan added!\n\n👤 To: {person}\n💰 Amount: {amount} sum\n📅 Date: {date}",
         "voice_processing": "🎤 Processing voice message...",
         "voice_transcribed": "📝 Text: {text}",
+        "edit_transaction": "✏️ Edit",
+        "delete_transaction": "🗑 Delete",
+        "confirm_delete": "❓ Are you sure you want to delete?\n\n💰 {amount} sum - {category}\n📝 {description}",
+        "yes_delete": "✅ Yes, delete",
+        "no_cancel": "❌ No, cancel",
+        "transaction_deleted": "🗑 Transaction deleted",
+        "transaction_not_found": "❌ Transaction not found",
     },
     "ru": {
         "welcome": "👋 Здравствуйте! Я Calco AI - ваш личный финансовый помощник.\n\n🌐 Выберите язык:",
@@ -85,6 +99,13 @@ TRANSLATIONS = {
         "loan_added": "✅ Долг добавлен!\n\n👤 Кому: {person}\n💰 Сумма: {amount} сум\n📅 Дата: {date}",
         "voice_processing": "🎤 Обработка голосового сообщения...",
         "voice_transcribed": "📝 Текст: {text}",
+        "edit_transaction": "✏️ Редактировать",
+        "delete_transaction": "🗑 Удалить",
+        "confirm_delete": "❓ Вы уверены, что хотите удалить?\n\n💰 {amount} сум - {category}\n📝 {description}",
+        "yes_delete": "✅ Да, удалить",
+        "no_cancel": "❌ Нет, отменить",
+        "transaction_deleted": "🗑 Транзакция удалена",
+        "transaction_not_found": "❌ Транзакция не найдена",
     }
 }
 

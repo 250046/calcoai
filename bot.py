@@ -29,6 +29,17 @@ def get_language_keyboard():
         ]
     ])
 
+def get_currency_keyboard():
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🇺🇿 UZS (So'm)", callback_data="currency_UZS"),
+            InlineKeyboardButton("🇺🇸 USD (Dollar)", callback_data="currency_USD")
+        ],
+        [
+            InlineKeyboardButton("🇷🇺 RUB (Ruble)", callback_data="currency_RUB")
+        ]
+    ])
+
 def get_main_menu_keyboard(lang: str):
     return InlineKeyboardMarkup([
         [
@@ -75,17 +86,46 @@ async def language_callback(client: Client, callback: CallbackQuery):
     lang = callback.data.split("_")[1]
     user = db.get_user(callback.from_user.id)
     
+    # Store language temporarily in user_states
+    user_states[callback.from_user.id] = {"selected_language": lang}
+    
+    # Ask for currency selection
+    currency_text = {
+        "uz": "✅ Til o'zbekcha o'rnatildi!\n\n💱 Valyutani tanlang:",
+        "ru": "✅ Язык установлен на русский!\n\n💱 Выберите валюту:",
+        "en": "✅ Language set to English!\n\n💱 Choose currency:"
+    }
+    
+    await callback.message.edit_text(
+        currency_text.get(lang, currency_text["en"]),
+        reply_markup=get_currency_keyboard()
+    )
+
+@app.on_callback_query(filters.regex("^currency_"))
+async def currency_callback(client: Client, callback: CallbackQuery):
+    currency = callback.data.split("_")[1]
+    user = db.get_user(callback.from_user.id)
+    
+    # Get language from user_states
+    state = user_states.get(callback.from_user.id, {})
+    lang = state.get("selected_language", "uz")
+    
     if not user:
         db.create_user(
             telegram_id=callback.from_user.id,
             name=callback.from_user.first_name or "User",
-            language=lang
+            language=lang,
+            currency=currency
         )
     else:
         db.update_user_language(callback.from_user.id, lang)
+        db.update_user_currency(callback.from_user.id, currency)
+    
+    # Clear state
+    user_states.pop(callback.from_user.id, None)
     
     await callback.message.edit_text(
-        t("language_selected", lang) + "\n\n" + t("main_menu", lang),
+        t("main_menu", lang),
         reply_markup=get_main_menu_keyboard(lang)
     )
 
@@ -121,15 +161,22 @@ async def view_history_callback(client: Client, callback: CallbackQuery):
         return
     
     text = t("history_title", lang) + "\n\n"
-    for trans in transactions:
+    buttons = []
+    
+    for i, trans in enumerate(transactions, 1):
         emoji = "💰" if trans["type"] == "income" else "💸"
-        text += f"{emoji} {trans['amount']} so'm - {trans['category']}\n"
+        text += f"{i}. {emoji} {trans['amount']} so'm - {trans['category']}\n"
         text += f"   📝 {trans['description']}\n"
         text += f"   📅 {trans['date']}\n\n"
+        
+        # Add edit/delete buttons for each transaction
+        buttons.append([
+            InlineKeyboardButton(f"{i}. {t('delete_transaction', lang)}", callback_data=f"delete_{trans['id']}")
+        ])
     
-    await callback.message.edit_text(text, reply_markup=InlineKeyboardMarkup([
-        [InlineKeyboardButton(t("back", lang), callback_data="main_menu")]
-    ]))
+    buttons.append([InlineKeyboardButton(t("back", lang), callback_data="main_menu")])
+    
+    await callback.message.edit_text(text, reply_markup=InlineKeyboardMarkup(buttons))
 
 @app.on_callback_query(filters.regex("^monthly_report$"))
 async def monthly_report_callback(client: Client, callback: CallbackQuery):
@@ -192,10 +239,51 @@ async def view_loans_callback(client: Client, callback: CallbackQuery):
         [InlineKeyboardButton(t("back", lang), callback_data="manage_loans")]
     ]))
 
+@app.on_callback_query(filters.regex("^delete_"))
+async def delete_transaction_callback(client: Client, callback: CallbackQuery):
+    user = db.get_user(callback.from_user.id)
+    lang = user.get("language", "uz") if user else "uz"
+    
+    transaction_id = int(callback.data.split("_")[1])
+    transaction = db.get_transaction_by_id(transaction_id)
+    
+    if not transaction:
+        await callback.answer(t("transaction_not_found", lang), show_alert=True)
+        return
+    
+    # Show confirmation
+    text = t("confirm_delete", lang,
+             amount=transaction["amount"],
+             category=transaction["category"],
+             description=transaction["description"])
+    
+    await callback.message.edit_text(text, reply_markup=InlineKeyboardMarkup([
+        [InlineKeyboardButton(t("yes_delete", lang), callback_data=f"confirm_delete_{transaction_id}")],
+        [InlineKeyboardButton(t("no_cancel", lang), callback_data="view_history")]
+    ]))
+
+@app.on_callback_query(filters.regex("^confirm_delete_"))
+async def confirm_delete_callback(client: Client, callback: CallbackQuery):
+    user = db.get_user(callback.from_user.id)
+    lang = user.get("language", "uz") if user else "uz"
+    
+    transaction_id = int(callback.data.split("_")[2])
+    
+    # Delete transaction
+    success = db.delete_transaction(transaction_id, user["id"])
+    
+    if success:
+        await callback.answer(t("transaction_deleted", lang), show_alert=True)
+    else:
+        await callback.answer(t("transaction_not_found", lang), show_alert=True)
+    
+    # Go back to history
+    await view_history_callback(client, callback)
+
 @app.on_callback_query(filters.regex("^settings$"))
 async def settings_callback(client: Client, callback: CallbackQuery):
     await callback.message.edit_text(
-        "⚙️ Sozlamalar / Настройки\n\nTilni o'zgartirish / Изменить язык:",
+        "⚙️ Sozlamalar / Настройки / Settings\n\nTilni o'zgartirish / Изменить язык / Change language:",
         reply_markup=get_language_keyboard()
     )
 
